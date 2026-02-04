@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Edit2, Search, Filter, Hash, Tag, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit2, Search, Filter, Hash, Tag, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Modal } from '../components/ui/Modal';
 import { ProductForm } from '../components/forms/ProductForm';
@@ -13,6 +13,7 @@ export const Products = () => {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+    const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
     useEffect(() => {
         fetchProducts();
@@ -50,6 +51,63 @@ export const Products = () => {
         }
     };
 
+    const handleDelete = async (product: any) => {
+        if (!window.confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', product.id);
+
+            if (error) throw error;
+            toast.success('Product deleted successfully');
+            fetchProducts();
+        } catch (error: any) {
+            toast.error(error.message || 'Error deleting product');
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedProducts.length === 0) return;
+
+        if (!window.confirm(`Are you sure you want to delete ${selectedProducts.length} product(s)? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('products')
+                .delete()
+                .in('id', selectedProducts);
+
+            if (error) throw error;
+            toast.success(`${selectedProducts.length} product(s) deleted successfully`);
+            setSelectedProducts([]);
+            fetchProducts();
+        } catch (error: any) {
+            toast.error(error.message || 'Error deleting products');
+        }
+    };
+
+    const toggleSelectProduct = (productId: string) => {
+        setSelectedProducts(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedProducts.length === currentProducts.length) {
+            setSelectedProducts([]);
+        } else {
+            setSelectedProducts(currentProducts.map(p => p.id));
+        }
+    };
+
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -73,13 +131,24 @@ export const Products = () => {
                     <h1 className="text-2xl font-bold text-admin-primary">Products</h1>
                     <p className="text-admin-text-secondary mt-1">Manage your inventory, pricing and visibility.</p>
                 </div>
-                <button
-                    onClick={() => { setSelectedProduct(null); setIsModalOpen(true); }}
-                    className="btn-primary flex items-center"
-                >
-                    <Plus size={18} className="mr-2" />
-                    Add Product
-                </button>
+                <div className="flex items-center gap-3">
+                    {selectedProducts.length > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="btn-secondary flex items-center bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                        >
+                            <Trash2 size={18} className="mr-2" />
+                            Delete ({selectedProducts.length})
+                        </button>
+                    )}
+                    <button
+                        onClick={() => { setSelectedProduct(null); setIsModalOpen(true); }}
+                        className="btn-primary flex items-center"
+                    >
+                        <Plus size={18} className="mr-2" />
+                        Add Product
+                    </button>
+                </div>
             </div>
 
             <div className="card">
@@ -104,6 +173,14 @@ export const Products = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-6 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        checked={currentProducts.length > 0 && selectedProducts.length === currentProducts.length}
+                                        onChange={toggleSelectAll}
+                                        className="w-4 h-4 text-admin-accent rounded border-gray-300 focus:ring-admin-accent"
+                                    />
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
@@ -127,6 +204,14 @@ export const Products = () => {
                             ) : currentProducts.length > 0 ? (
                                 currentProducts.map((product) => (
                                     <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedProducts.includes(product.id)}
+                                                onChange={() => toggleSelectProduct(product.id)}
+                                                className="w-4 h-4 text-admin-accent rounded border-gray-300 focus:ring-admin-accent"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="w-12 h-12 rounded bg-gray-100 flex-shrink-0 border border-gray-100 overflow-hidden">
@@ -175,8 +260,16 @@ export const Products = () => {
                                                 <button
                                                     onClick={() => { setSelectedProduct(product); setIsModalOpen(true); }}
                                                     className="p-2 text-gray-400 hover:text-admin-accent transition-colors"
+                                                    title="Edit Product"
                                                 >
                                                     <Edit2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(product)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                                    title="Delete Product"
+                                                >
+                                                    <Trash2 size={18} />
                                                 </button>
                                             </div>
                                         </td>
@@ -184,7 +277,7 @@ export const Products = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 italic">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 italic">
                                         No products found.
                                     </td>
                                 </tr>
@@ -215,8 +308,8 @@ export const Products = () => {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`px-3 py-1.5 text-sm rounded-md transition-colors ${currentPage === page
-                                                ? 'bg-admin-accent text-white'
-                                                : 'border border-gray-300 hover:bg-gray-50'
+                                            ? 'bg-admin-accent text-white'
+                                            : 'border border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         {page}
