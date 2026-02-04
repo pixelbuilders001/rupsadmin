@@ -9,6 +9,7 @@ const statusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800',
     confirmed: 'bg-blue-100 text-blue-800',
     shipped: 'bg-indigo-100 text-indigo-800',
+    out_for_delivery: 'bg-orange-100 text-orange-800',
     delivered: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-800',
 };
@@ -17,6 +18,7 @@ const statusIcons: Record<string, any> = {
     pending: Clock,
     confirmed: CheckCircle,
     shipped: Truck,
+    out_for_delivery: PackageCheck,
     delivered: PackageCheck,
     cancelled: XCircle,
 };
@@ -27,6 +29,8 @@ export const Orders = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [statusNote, setStatusNote] = useState('');
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
         fetchOrders();
@@ -51,19 +55,54 @@ export const Orders = () => {
 
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ status: newStatus })
-                .eq('id', orderId);
+            setUpdatingStatus(true);
 
-            if (error) throw error;
+            // Get the current user's session token
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+            if (sessionError || !session) {
+                throw new Error('You must be logged in to update order status');
+            }
+
+            const userToken = session.access_token;
+
+            if (!userToken) {
+                throw new Error('Authentication token not found. Please log in again.');
+            }
+
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+            const response = await fetch(`${supabaseUrl}/functions/v1/order-status-change`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${userToken}`,
+                    'apikey': supabaseKey,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    order_id: orderId,
+                    status: newStatus,
+                    note: statusNote || `Status updated to ${newStatus} by admin`
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.text();
+                throw new Error(`Failed to update order status: ${errorData}`);
+            }
+
             toast.success(`Order status updated to ${newStatus}`);
+            setStatusNote('');
             fetchOrders();
             if (selectedOrder?.id === orderId) {
                 setIsModalOpen(false);
             }
         } catch (error: any) {
+            console.error('Order status update error:', error);
             toast.error(error.message || 'Error updating order status');
+        } finally {
+            setUpdatingStatus(false);
         }
     };
 
@@ -212,18 +251,36 @@ export const Orders = () => {
 
                         <div className="border-t border-gray-100 pt-4">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Update Order Status</p>
+
+                            <div className="mb-4">
+                                <label htmlFor="status-note" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Add Note (Optional)
+                                </label>
+                                <textarea
+                                    id="status-note"
+                                    rows={2}
+                                    className="input w-full resize-none"
+                                    placeholder="Add a note about this status change..."
+                                    value={statusNote}
+                                    onChange={(e) => setStatusNote(e.target.value)}
+                                />
+                            </div>
+
                             <div className="flex flex-wrap gap-2">
-                                {['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map((status) => (
+                                {['pending', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'].map((status) => (
                                     <button
                                         key={status}
                                         onClick={() => handleUpdateStatus(selectedOrder.id, status)}
-                                        disabled={selectedOrder.status === status}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm
-                      ${selectedOrder.status === status
+                                        disabled={selectedOrder.status === status || updatingStatus}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2
+                      ${selectedOrder.status === status || updatingStatus
                                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                 : 'bg-white border hover:bg-admin-accent hover:text-white hover:border-admin-accent'}`}
                                     >
-                                        {status.toUpperCase()}
+                                        {updatingStatus && (
+                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                                        )}
+                                        {status.replace(/_/g, ' ').toUpperCase()}
                                     </button>
                                 ))}
                             </div>
