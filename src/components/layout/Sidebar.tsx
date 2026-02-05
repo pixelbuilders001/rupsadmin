@@ -5,9 +5,11 @@ import {
     Package,
     ShoppingCart,
     Users,
-    LogOut,
     ChevronLeft,
-    Menu
+    Menu,
+    LogOut,
+    RefreshCw,
+    Star
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +25,8 @@ const navItems = [
     { icon: Tag, label: 'Categories', path: '/categories' },
     { icon: Package, label: 'Products', path: '/products' },
     { icon: ShoppingCart, label: 'Orders', path: '/orders' },
+    { icon: RefreshCw, label: 'Returns', path: '/returns' },
+    { icon: Star, label: 'Reviews', path: '/reviews' },
     { icon: Users, label: 'Users', path: '/users' },
 ];
 

@@ -53,7 +53,7 @@ export const Orders = () => {
         }
     };
 
-    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    const handleUpdateStatus = async (orderId: string, newStatus: string, orderItemId: string) => {
         try {
             setUpdatingStatus(true);
 
@@ -65,13 +65,19 @@ export const Orders = () => {
             }
 
             const userToken = session.access_token;
-
             if (!userToken) {
                 throw new Error('Authentication token not found. Please log in again.');
             }
 
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
             const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+            const payload: any = {
+                order_id: orderId,
+                order_item_id: orderItemId,
+                status: newStatus,
+                note: statusNote || `Status updated to ${newStatus} by admin for item`
+            };
 
             const response = await fetch(`${supabaseUrl}/functions/v1/order-status-change`, {
                 method: 'POST',
@@ -80,27 +86,29 @@ export const Orders = () => {
                     'apikey': supabaseKey,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    order_id: orderId,
-                    status: newStatus,
-                    note: statusNote || `Status updated to ${newStatus} by admin`
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
                 const errorData = await response.text();
-                throw new Error(`Failed to update order status: ${errorData}`);
+                throw new Error(`Failed to update status: ${errorData}`);
             }
 
-            toast.success(`Order status updated to ${newStatus}`);
+            toast.success(`Item status updated to ${newStatus}`);
             setStatusNote('');
+
+            // Refresh both the list and the selected order details
             fetchOrders();
-            if (selectedOrder?.id === orderId) {
-                setIsModalOpen(false);
-            }
+            const { data: updatedOrder } = await supabase
+                .from('orders')
+                .select('*, order_items(*, products(name))')
+                .eq('id', orderId)
+                .single();
+            if (updatedOrder) setSelectedOrder(updatedOrder);
+
         } catch (error: any) {
             console.error('Order status update error:', error);
-            toast.error(error.message || 'Error updating order status');
+            toast.error(error.message || 'Error updating status');
         } finally {
             setUpdatingStatus(false);
         }
@@ -231,60 +239,47 @@ export const Orders = () => {
                         </div>
 
                         <div className="border-t border-gray-100 pt-4">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Order Items</p>
-                            <div className="space-y-3">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Order Items (Update Individually)</p>
+                            <div className="space-y-4">
                                 {selectedOrder.order_items?.map((item: any) => (
-                                    <div key={item.id} className="flex justify-between items-center text-sm">
-                                        <div className="flex-1">
-                                            <p className="font-medium text-admin-primary">{item.products?.name}</p>
-                                            <p className="text-gray-500 text-xs">Qty: {item.qty} × ₹{item.price}</p>
+                                    <div key={item.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-admin-primary">{item.products?.name}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <p className="text-gray-500 text-xs font-medium">Qty: {item.qty} × ₹{item.price}</p>
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColors[item.status || 'pending']}`}>
+                                                        {item.status || 'pending'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="font-bold text-admin-primary">₹{item.qty * item.price}</p>
                                         </div>
-                                        <p className="font-semibold">₹{item.qty * item.price}</p>
+
+                                        <div className="flex flex-wrap gap-1.5 mt-3">
+                                            {['pending', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'].map((status) => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => handleUpdateStatus(selectedOrder.id, status, item.id)}
+                                                    disabled={item.status === status || updatingStatus}
+                                                    className={`px-2 py-1 rounded text-[10px] font-bold transition-all shadow-sm
+                                                        ${item.status === status || updatingStatus
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-transparent'
+                                                            : 'bg-white border border-gray-200 hover:bg-admin-accent hover:text-white hover:border-admin-accent'}`}
+                                                >
+                                                    {status.replace(/_/g, ' ').toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center px-2">
                                 <p className="font-bold text-admin-primary">Total Amount</p>
-                                <p className="font-bold text-lg text-admin-accent">₹{selectedOrder.amount}</p>
+                                <p className="font-bold text-xl text-admin-accent">₹{selectedOrder.amount}</p>
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-100 pt-4">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Update Order Status</p>
-
-                            <div className="mb-4">
-                                <label htmlFor="status-note" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Add Note (Optional)
-                                </label>
-                                <textarea
-                                    id="status-note"
-                                    rows={2}
-                                    className="input w-full resize-none"
-                                    placeholder="Add a note about this status change..."
-                                    value={statusNote}
-                                    onChange={(e) => setStatusNote(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                                {['pending', 'confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'].map((status) => (
-                                    <button
-                                        key={status}
-                                        onClick={() => handleUpdateStatus(selectedOrder.id, status)}
-                                        disabled={selectedOrder.status === status || updatingStatus}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2
-                      ${selectedOrder.status === status || updatingStatus
-                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                : 'bg-white border hover:bg-admin-accent hover:text-white hover:border-admin-accent'}`}
-                                    >
-                                        {updatingStatus && (
-                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                                        )}
-                                        {status.replace(/_/g, ' ').toUpperCase()}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 )}
             </Modal>
