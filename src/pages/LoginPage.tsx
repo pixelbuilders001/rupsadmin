@@ -1,11 +1,13 @@
 import React from 'react';
 import { supabase } from '../lib/supabase';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 
 export const LoginPage = () => {
     const { user, isAdmin } = useAuth();
+    const [searchParams] = useSearchParams();
+    const redirectTo = searchParams.get('redirectTo') || searchParams.get('next') || '/';
 
     if (user) {
         if (isAdmin) {
@@ -34,7 +36,7 @@ export const LoginPage = () => {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${window.location.origin}/`
+                    redirectTo: `${window.location.origin}${redirectTo}`
                 }
             });
             if (error) throw error;
