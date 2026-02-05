@@ -9,7 +9,9 @@ import {
     Menu,
     LogOut,
     RefreshCw,
-    Star
+    Star,
+    MapPin,
+    Heart
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +29,8 @@ const navItems = [
     { icon: ShoppingCart, label: 'Orders', path: '/orders' },
     { icon: RefreshCw, label: 'Returns', path: '/returns' },
     { icon: Star, label: 'Reviews', path: '/reviews' },
+    { icon: MapPin, label: 'Serviceable City', path: '/serviceable-pincodes' },
+    // { icon: Heart, label: 'Wishlists', path: '/wishlists' },
     { icon: Users, label: 'Users', path: '/users' },
 ];
 

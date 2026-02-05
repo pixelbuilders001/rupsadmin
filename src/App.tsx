@@ -10,6 +10,8 @@ import { Orders } from './pages/Orders';
 import { Users } from './pages/Users';
 import { Returns } from './pages/Returns';
 import { Reviews } from './pages/Reviews';
+import { ServiceablePincodes } from './pages/ServiceablePincodes';
+import { Wishlists } from './pages/Wishlists';
 
 // Placeholder components
 
@@ -28,6 +30,8 @@ function App() {
                         <Route path="users" element={<Users />} />
                         <Route path="returns" element={<Returns />} />
                         <Route path="reviews" element={<Reviews />} />
+                        <Route path="serviceable-pincodes" element={<ServiceablePincodes />} />
+                        <Route path="wishlists" element={<Wishlists />} />
                     </Route>
                 </Routes>
                 <Toaster position="top-right" richColors />
