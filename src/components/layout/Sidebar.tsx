@@ -11,7 +11,8 @@ import {
     RefreshCw,
     Star,
     MapPin,
-    Heart
+    Heart,
+    Image as ImageIcon
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +31,7 @@ const navItems = [
     { icon: RefreshCw, label: 'Returns', path: '/returns' },
     { icon: Star, label: 'Reviews', path: '/reviews' },
     { icon: MapPin, label: 'Serviceable City', path: '/serviceable-pincodes' },
+    { icon: ImageIcon, label: 'Banners', path: '/banners' },
     // { icon: Heart, label: 'Wishlists', path: '/wishlists' },
     { icon: Users, label: 'Users', path: '/users' },
 ];

@@ -106,10 +106,15 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, bucke
                         src={value}
                         alt="Upload"
                         className="w-full h-full object-cover rounded-lg border border-gray-200"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/400x400?text=Broken+Image';
+                            console.error('Image failed to load:', value);
+                        }}
                     />
                     <button
                         onClick={removeImage}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                        type="button"
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
                     >
                         <X size={14} />
                     </button>

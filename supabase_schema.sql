@@ -95,12 +95,31 @@ create table public.order_items (
   constraint order_items_product_id_fkey foreign KEY (product_id) references products (id)
 ) TABLESPACE pg_default;
 
+-- Hero Banners Table
+create table public.hero_banners (
+  id uuid not null default gen_random_uuid (),
+  title text not null,
+  subtitle text null,
+  image_url text not null,
+  mobile_image_url text null,
+  cta_text text null,
+  cta_link text null,
+  position integer null default 1,
+  is_active boolean null default true,
+  start_date timestamp with time zone null,
+  end_date timestamp with time zone null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint hero_banners_pkey primary key (id)
+) TABLESPACE pg_default;
+
 -- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hero_banners ENABLE ROW LEVEL SECURITY;
 
 -- Simple Admin Policy (for demo/minimalist admin panel)
 -- In a real app, users would have 'select' access to their own orders.
@@ -109,6 +128,8 @@ CREATE POLICY "Admins have full access on categories" ON categories FOR ALL USIN
 CREATE POLICY "Admins have full access on products" ON products FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
 CREATE POLICY "Admins have full access on orders" ON orders FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
 CREATE POLICY "Admins have full access on order_items" ON order_items FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+CREATE POLICY "Admins have full access on hero_banners" ON hero_banners FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+CREATE POLICY "Public select access on hero_banners" ON hero_banners FOR SELECT USING (true);
 
 -- Storage Configuration
 -- Create buckets
@@ -118,6 +139,10 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('products', 'products', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('banner-images', 'banner-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Policies for categories bucket
@@ -131,8 +156,12 @@ CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = '
 CREATE POLICY "Admin Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'products' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
 CREATE POLICY "Admin Update" ON storage.objects FOR UPDATE USING (bucket_id = 'products' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
 CREATE POLICY "Admin Delete" ON storage.objects FOR DELETE USING (bucket_id = 'products' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
--- Delete
-CREATE POLICY "Admin Delete" ON storage.objects FOR DELETE USING (bucket_id = 'products' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
+
+-- Policies for banner-images bucket
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'banner-images');
+CREATE POLICY "Admin Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'banner-images' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
+CREATE POLICY "Admin Update" ON storage.objects FOR UPDATE USING (bucket_id = 'banner-images' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
+CREATE POLICY "Admin Delete" ON storage.objects FOR DELETE USING (bucket_id = 'banner-images' AND (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)));
 
 -- Auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

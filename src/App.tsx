@@ -12,6 +12,7 @@ import { Returns } from './pages/Returns';
 import { Reviews } from './pages/Reviews';
 import { ServiceablePincodes } from './pages/ServiceablePincodes';
 import { Wishlists } from './pages/Wishlists';
+import { Banners } from './pages/Banners';
 
 // Placeholder components
 
@@ -32,6 +33,7 @@ function App() {
                         <Route path="reviews" element={<Reviews />} />
                         <Route path="serviceable-pincodes" element={<ServiceablePincodes />} />
                         <Route path="wishlists" element={<Wishlists />} />
+                        <Route path="banners" element={<Banners />} />
                     </Route>
                 </Routes>
                 <Toaster position="top-right" richColors />
