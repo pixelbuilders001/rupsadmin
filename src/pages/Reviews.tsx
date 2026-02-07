@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { CheckCircle, XCircle, Star, Search, Filter, MessageSquare, Package, User } from 'lucide-react';
+import { CheckCircle, XCircle, Star, Search, Filter, MessageSquare, Package, User, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -137,6 +137,7 @@ export const Reviews = () => {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Review</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rating</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Engagement</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -201,7 +202,18 @@ export const Reviews = () => {
                                                         className={i < review.rating ? "" : "text-gray-300"}
                                                     />
                                                 ))}
-                                                <span className="ml-1 text-xs font-semibold text-gray-700">{review.rating}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center justify-center space-x-4">
+                                                <div className="flex items-center text-green-600" title="Likes">
+                                                    <ThumbsUp size={14} className="mr-1" />
+                                                    <span className="text-xs font-medium">{review.likes || 0}</span>
+                                                </div>
+                                                <div className="flex items-center text-red-600" title="Dislikes">
+                                                    <ThumbsDown size={14} className="mr-1" />
+                                                    <span className="text-xs font-medium">{review.dislikes || 0}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

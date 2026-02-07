@@ -233,9 +233,9 @@ export const Products = () => {
                                             {product.categories?.name}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-admin-primary">₹{product.price}</div>
+                                            <div className="text-sm font-bold text-admin-primary">₹{product.sale_price}</div>
                                             {product.sale_price && (
-                                                <div className="text-xs text-red-500 line-through">₹{product.sale_price}</div>
+                                                <div className="text-xs text-red-500 line-through">₹{product.price}</div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
